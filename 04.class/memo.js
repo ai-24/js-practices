@@ -12,7 +12,7 @@ class FileInfo {
 }
 
 class MemoApp {
-  static create () {
+  create () {
     const details = []
     const rl = readlinePromise.createInterface({
       input: process.stdin
@@ -30,12 +30,12 @@ class MemoApp {
     })
   }
 
-  static list () {
+  list () {
     const memos = Memo.findAll()
     for (const memo of memos) { console.log(memo.title) }
   }
 
-  static options (msg) {
+  options (msg) {
     const memos = Memo.findAll()
     const options = []
     for (const memo of memos) { options.push(memo.title) }
@@ -48,9 +48,10 @@ class MemoApp {
     return enquirer
   }
 
-  static refer (msg) {
+  refer (msg) {
     const memos = Memo.find()
-    const options = MemoApp.options(msg)
+    const memoApp = new MemoApp()
+    const options = memoApp.options(msg)
     options.prompt(options)
       .then(
         answer =>
@@ -61,9 +62,10 @@ class MemoApp {
           })).catch(console.error)
   }
 
-  static destroy (msg) {
+  destroy (msg) {
     const memos = Memo.find()
-    const options = MemoApp.options(msg)
+    const memoApp = new MemoApp()
+    const options = memoApp.options(msg)
     options.prompt(options)
       .then(
         answer =>
@@ -118,12 +120,13 @@ class Memo {
   }
 }
 
+const memoApp = new MemoApp()
 if (argv.l) {
-  MemoApp.list()
+  memoApp.list()
 } else if (argv.r) {
-  MemoApp.refer('Choose a note you want to see:')
+  memoApp.refer('Choose a note you want to see:')
 } else if (argv.d) {
-  MemoApp.destroy('Choose a note you want to delete:')
+  memoApp.destroy('Choose a note you want to delete:')
 } else {
-  MemoApp.create()
+  memoApp.create()
 }
