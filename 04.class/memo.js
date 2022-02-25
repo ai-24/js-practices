@@ -5,11 +5,13 @@ const crypto = require('crypto')
 const argv = require('minimist')(process.argv.slice(2))
 const Select = require('enquirer')
 
-class Memo {
-  constructor (content) {
-    this.content = content
+class FileInfo {
+  static files () {
+    return fs.readdirSync('memos')
   }
+}
 
+class MemoApp {
   static create () {
     const details = []
     const rl = readlinePromise.createInterface({
@@ -21,9 +23,7 @@ class Memo {
     })
     rl.on('close', () => {
       try {
-        const memo = new Memo(details)
-        const fileName = crypto.randomBytes(256).toString('base64').substring(0, 13)
-        fsPromises.writeFile('memos/' + fileName + '.txt', memo.content)
+        Memo.save(details)
       } catch (err) {
         console.log(err)
       }
@@ -31,80 +31,99 @@ class Memo {
   }
 
   static list () {
-    for (const file of FileInfo.files()) {
-      readlinePromise.createInterface({
-        input: fs.createReadStream('memos/' + file)
-      }).once('line', (input) => {
-        console.log(input)
-      })
-    }
+    const memos = Memo.findAll()
+    for (const memo of memos) { console.log(memo.title) }
   }
 
-  static referOrDelete (msg) {
-    const firstLine = []
-    for (const [index, content] of FileInfo.info().entries()) {
-      content.once('line', (input) => {
-        firstLine.push(input)
-        firstLine.push(content.input.path)
-      })
-      content.once('close', () => {
-        const options = firstLine.filter(function (e, i) {
-          return i % 2 === 0
-        })
-        if (index === 0) {
-          const enquirer = new Select({
-            type: 'select',
-            name: 'memo',
-            message: msg,
-            choices: options
-          })
-          if (argv.r) {
-            enquirer.prompt(enquirer)
-              .then(
-                answer =>
-                  readlinePromise.createInterface({
-                    input: fs.createReadStream(firstLine[firstLine.findIndex(e => e === answer.memo) + 1])
-                  }).on('line', (input) => {
-                    console.log(input)
-                  })).catch(console.error)
-          } else if (argv.d) {
-            enquirer.prompt(enquirer)
-              .then(
-                answer =>
-                  fs.unlinkSync(firstLine[firstLine.findIndex(e => e === answer.memo) + 1])
-              ).catch(console.error)
-          }
-        }
-      }
-      )
-    }
+  static options (msg) {
+    const memos = Memo.findAll()
+    const options = []
+    for (const memo of memos) { options.push(memo.title) }
+    const enquirer = new Select({
+      type: 'select',
+      name: 'memo',
+      message: msg,
+      choices: options
+    })
+    return enquirer
+  }
+
+  static refer (msg) {
+    const memos = Memo.find()
+    const options = MemoApp.options(msg)
+    options.prompt(options)
+      .then(
+        answer =>
+          readlinePromise.createInterface({
+            input: fs.createReadStream(memos[memos.indexOf(answer.memo) + 1])
+          }).on('line', (input) => {
+            console.log(input)
+          })).catch(console.error)
+  }
+
+  static destroy (msg) {
+    const memos = Memo.find()
+    const options = MemoApp.options(msg)
+    options.prompt(options)
+      .then(
+        answer =>
+          fs.unlinkSync(memos[memos.indexOf(answer.memo) + 1])
+      ).catch(console.error)
   }
 }
 
-class FileInfo {
-  static files () {
-    return fs.readdirSync('memos')
+class Memo {
+  constructor (contents) {
+    const contentsArry = []
+    if (Array.isArray(contents)) {
+      contentsArry.push(contents)
+    } else {
+      const detail = contents.split('\n')
+      contentsArry.push(detail)
+    }
+    this.title = contentsArry[0][0]
+    contentsArry[0].shift()
+    this.content = contentsArry[0]
   }
 
-  static info () {
-    const contents = []
+  static save (memo) {
+    const content = new Memo(memo)
+    const fileName = crypto.randomBytes(256).toString('base64').substring(0, 13)
+    const detail = []
+    detail.push(content.title)
+    detail.push(content.content)
+    fsPromises.writeFile('memos/' + fileName + '.txt', detail.flat())
+  }
+
+  static findAll () {
+    const memos = []
     for (const file of FileInfo.files()) {
-      const path = fs.createReadStream('memos/' + file)
-      const rl = readlinePromise.createInterface({
-        input: path
-      })
-      contents.push(rl)
+      const content = fs.readFileSync('memos/' + file, 'utf8')
+      const memo = new Memo(content)
+      memos.push(memo)
     }
-    return contents
+    return memos
+  }
+
+  static find () {
+    const filesInfo = []
+    for (const file of FileInfo.files()) {
+      const path = 'memos/' + file
+      const content = fs.readFileSync(path, 'utf8')
+      const memo = new Memo(content)
+      filesInfo.push(memo.title)
+      filesInfo.push(path)
+    }
+    return filesInfo
   }
 }
 
 if (argv.l) {
-  Memo.list()
+  MemoApp.list()
 } else if (argv.r) {
-  Memo.referOrDelete('Choose a note you want to see:')
+  MemoApp.refer('Choose a note you want to see:')
 } else if (argv.d) {
-  Memo.referOrDelete('Choose a note you want to delete:')
+  MemoApp.destroy('Choose a note you want to delete:')
 } else {
-  Memo.create()
+  MemoApp.create()
 }
