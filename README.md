@@ -1,7 +1,20 @@
-# js-practices
+# Memo App (JavaScript)
 
-フィヨルドブートキャンプのJSプラクティスの提出物をまとめるリポジトリです。
+メモの管理ができるアプリです。
 
-# How to use
+## How to use
+こちらのアプリではNode.jsのバージョンv17.0.0以降が必要となりますので、あらかじめインストールまたはアップデートしご使用ください。
+### 1. npmをインストールして下さい。
 
-使い方は基本的に[ruby-practices](https://github.com/fjordllc/ruby-practices/)と同じです。こちらのREADMEを参照してください。rubocopはeslintに読み替えてください。
+```
+$ npm install minimist
+```
+
+```
+$ npm install enquirer --save
+```
+   
+### 2. 作業PCの任意の作業ディレクトリにmemosディレクトリを作成して下さい。
+```bigquery
+$ mkdir memos
+```
